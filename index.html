@@ -8,28 +8,41 @@
   <style>
     .grid-container { 
       display: grid; 
-      grid-template-columns: repeat(11, minmax(0, 1fr)); 
-      gap: 2px; 
+      grid-template-columns: repeat(11, 1fr); 
+      gap: 3px; 
       background: #0f172a; 
-      padding: 2px; 
+      padding: 3px; 
       border-radius: 12px; 
+      max-width: 100%;
     }
     .cell { 
-      aspect-ratio: 1/1; 
+      aspect-ratio: 1 / 1;
       display: flex; 
       align-items: center; 
       justify-content: center; 
-      font-size: 1.35rem; 
+      font-size: 1.1rem;           /* más pequeño y controlado */
+      line-height: 1;
       cursor: pointer; 
       transition: all 0.2s; 
       user-select: none;
+      overflow: hidden;             /* evita desbordes */
+      border-radius: 4px;
     }
     .cell.water { background: #0ea5e9; }
     .cell.ship { background: #854d0e; }
     .cell.miss { background: #0ea5e9; }
     .cell.hit { background: #ef4444; }
     .cell.sunk { background: #7f1d1d; }
-    .label { background: #1e2937; color: white; font-weight: bold; }
+
+    .label { 
+      background: #1e2937; 
+      color: white; 
+      font-weight: bold; 
+      font-size: 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
     
     .ship-hull { display: inline-flex; gap: 2px; }
     .ship-square { 
@@ -53,6 +66,12 @@
       font-size: 12px; 
       font-weight: bold;
     }
+
+    /* Mejora para móviles */
+    @media (max-width: 640px) {
+      .cell { font-size: 1rem; }
+      .grid-container { gap: 2px; padding: 2px; }
+    }
   </style>
 </head>
 <body class="bg-slate-950 text-white min-h-screen pb-8">
@@ -61,7 +80,6 @@
       🌊 Batalla Naval <span class="text-amber-400">VIBES</span> ⚔️
     </h1>
 
-    <!-- Controles superiores -->
     <div class="flex justify-center gap-4 mb-6 flex-wrap" id="top-controls">
       <button onclick="startGame()" id="ready-btn"
               class="px-8 py-3 bg-emerald-500 hover:bg-emerald-600 font-bold rounded-2xl text-lg">
@@ -77,11 +95,10 @@
       <div class="flex-1">
         <div class="bg-slate-900 rounded-3xl p-5 shadow-2xl">
           <h2 class="text-2xl font-bold mb-3 flex items-center gap-2"><span class="text-cyan-400">🛡️</span> Mi Tablero</h2>
-          <div id="my-grid" class="grid-container mx-auto max-w-[420px]"></div>
+          <div id="my-grid" class="grid-container mx-auto"></div>
           <p id="my-help" class="text-center mt-3 text-sm text-slate-400">Toca para poner / quitar barcos</p>
         </div>
 
-        <!-- Flota enemiga debajo del tablero propio -->
         <div class="mt-6 bg-slate-900 rounded-3xl p-5 shadow-2xl">
           <h3 class="text-lg font-bold mb-4 flex items-center gap-2"><span class="text-purple-400">🏴‍☠️</span> Flota enemiga (toca para tachar/destachar)</h3>
           <div id="enemy-fleet" class="flex flex-wrap gap-6 justify-center"></div>
@@ -92,13 +109,12 @@
       <div class="flex-1">
         <div class="bg-slate-900 rounded-3xl p-5 shadow-2xl">
           <h2 class="text-2xl font-bold mb-3 flex items-center gap-2"><span class="text-red-400">🎯</span> Tablero Enemigo</h2>
-          <div id="enemy-grid" class="grid-container mx-auto max-w-[420px]"></div>
+          <div id="enemy-grid" class="grid-container mx-auto"></div>
           <p class="text-center mt-3 text-sm text-slate-400">Clic = Agua → Tocado → Hundido → Vacío</p>
         </div>
       </div>
     </div>
 
-    <!-- Estado del juego -->
     <div id="phase" class="text-center text-xl font-bold mt-8 text-amber-300"></div>
   </div>
 
@@ -141,7 +157,7 @@
 
     function createLabel(text) {
       const div = document.createElement('div');
-      div.className = 'label flex items-center justify-center text-xs';
+      div.className = 'label';
       div.textContent = text;
       return div;
     }
@@ -151,7 +167,7 @@
         const r = +cell.dataset.row, c = +cell.dataset.col;
         const st = statusMap[r][c];
         cell.className = `cell ${st}`;
-        cell.textContent = st === 'ship' ? '🛳️' : '';
+        cell.textContent = (st === 'ship') ? '🛳️' : '';
       });
     }
 
@@ -192,11 +208,9 @@
       const c = +e.target.dataset.col;
       
       if (isPlaying) {
-        // Rival te dispara
-        if (statusMap[r][c] === 'miss' || statusMap[r][c] === 'hit' || statusMap[r][c] === 'sunk') return;
+        if (['miss','hit','sunk'].includes(statusMap[r][c])) return;
         statusMap[r][c] = statusMap[r][c] === 'ship' ? 'hit' : 'miss';
       } else {
-        // Colocación libre
         statusMap[r][c] = statusMap[r][c] === 'water' ? 'ship' : 'water';
       }
       renderMyGrid();
@@ -216,7 +230,7 @@
       document.getElementById('ready-btn').classList.add('hidden');
       document.getElementById('restart-btn').classList.remove('hidden');
       document.getElementById('phase').textContent = "¡Partida en marcha! Habla con tu rival 🌊";
-      document.getElementById('my-help').textContent = "Toca las casillas cuando te disparen";
+      document.getElementById('my-help').textContent = "Toca cuando te disparen";
       renderMyGrid();
     };
 
