@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🌊 Batalla Naval Vibes ⚔️</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .grid-container { display: grid; grid-template-columns: repeat(11, minmax(0, 1fr)); gap: 2px; background: #0f172a; padding: 2px; border-radius: 12px; }
+    .cell { aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; cursor: pointer; transition: all 0.2s; }
+    .cell.water { background: #0ea5e9; }
+    .cell.ship { background: #854d0e; }
+    .cell.miss { background: #0ea5e9; }
+    .cell.hit { background: #ef4444; }
+    .cell.sunk { background: #7f1d1d; }
+    .label { background: #1e2937; color: white; font-weight: bold; }
+    .ship-hull { display: inline-flex; gap: 2px; }
+    .ship-square { width: 20px; height: 20px; background: #854d0e; border: 1px solid #451a03; }
+    .sunk .ship-square { background: #7f1d1d; position: relative; }
+    .sunk .ship-square::after { content: "✕"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; }
+  </style>
+</head>
+<body class="bg-slate-950 text-white min-h-screen pb-12">
+  <div class="max-w-6xl mx-auto px-4">
+    <h1 class="text-5xl font-bold text-center py-8 flex items-center justify-center gap-3">
+      🌊 Batalla Naval <span class="text-amber-400">VIBES</span> ⚔️
+    </h1>
+
+    <div class="flex flex-col lg:flex-row gap-8">
+      <!-- MI TABLERO -->
+      <div class="flex-1">
+        <div class="bg-slate-900 rounded-3xl p-6 shadow-2xl">
+          <h2 class="text-2xl font-bold mb-4 flex items-center gap-2"><span class="text-cyan-400">🛡️</span> Mi Tablero</h2>
+          <div id="my-grid" class="grid-container mx-auto max-w-[440px]"></div>
+          <p id="my-status" class="text-center mt-4 text-lg font-medium"></p>
+        </div>
+      </div>
+
+      <!-- TABLERO ENEMIGO -->
+      <div class="flex-1">
+        <div class="bg-slate-900 rounded-3xl p-6 shadow-2xl">
+          <h2 class="text-2xl font-bold mb-4 flex items-center gap-2"><span class="text-red-400">🎯</span> Tablero Enemigo</h2>
+          <div id="enemy-grid" class="grid-container mx-auto max-w-[440px]"></div>
+          <p id="enemy-status" class="text-center mt-4 text-lg font-medium"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- FASE Y CONTROLES -->
+    <div class="mt-8 bg-slate-900 rounded-3xl p-6 text-center">
+      <div id="phase" class="text-xl font-bold mb-4">Fase: Colocando barcos 🌊</div>
+      
+      <!-- COLOCACIÓN DE BARCOS -->
+      <div id="placement-panel">
+        <p class="mb-3 text-amber-300">Selecciona un barco y toca la celda de inicio</p>
+        <div class="flex flex-wrap justify-center gap-4 mb-6" id="ship-buttons"></div>
+        
+        <div class="flex justify-center gap-4">
+          <button onclick="toggleOrientation()" 
+                  class="px-6 py-3 bg-slate-800 hover:bg-slate-700 rounded-2xl font-bold flex items-center gap-2">
+            <span id="orientation-text">Horizontal →</span>
+          </button>
+          <button onclick="resetPlacement()" 
+                  class="px-6 py-3 bg-red-500/80 hover:bg-red-600 rounded-2xl font-bold">Reiniciar colocación</button>
+          <button onclick="startGame()" id="ready-btn"
+                  class="px-8 py-3 bg-emerald-500 hover:bg-emerald-600 rounded-2xl font-bold text-xl disabled:opacity-50" disabled>¡Listo! Empezar partida</button>
+        </div>
+      </div>
+
+      <!-- INSTRUCCIONES EN JUEGO -->
+      <div id="game-panel" class="hidden">
+        <p class="text-sm mb-2">En tu tablero: toca la celda que te dispararon → se marca solo</p>
+        <p class="text-sm">En tablero enemigo: toca la celda que disparaste → elige resultado</p>
+        <button onclick="endGame()" class="mt-4 px-6 py-2 bg-slate-700 hover:bg-slate-600 rounded-2xl text-sm">Nueva partida</button>
+      </div>
+    </div>
+
+    <!-- FLOTA ENEMIGA -->
+    <div class="mt-8 bg-slate-900 rounded-3xl p-6">
+      <h3 class="text-xl font-bold mb-4 flex items-center gap-2"><span class="text-purple-400">🏴‍☠️</span> Flota enemiga (táchalos cuando los hundas)</h3>
+      <div id="enemy-fleet" class="flex flex-wrap gap-6 justify-center"></div>
+    </div>
+
+    <div class="text-center text-xs text-slate-500 mt-12">
+      Batalla Naval Vibes • Hecho con amor y café por Grok • Juega hablando con tu rival 🌊
+    </div>
+  </div>
+
+  <script>
+    const ROWS = 10;
+    const COLS = 10;
+    const letters = 'ABCDEFGHIJ'.split('');
+    
+    let myShips = [];           // barcos propios para detectar hundidos
+    let shipMap = Array.from({length: ROWS}, () => Array(COLS).fill(-1)); // índice del barco en la celda
+    let statusMap = Array.from({length: ROWS}, () => Array(COLS).fill('water')); // water, ship, miss, hit, sunk
+    
+    let enemyBoard = Array.from({length: ROWS}, () => Array(COLS).fill('unknown'));
+    
+    let opponentShips = [
+      {id:1, length:6, sunk:false, name:"Portaaviones 6"},
+      {id:2, length:4, sunk:false, name:"Crucero 4"},
+      {id:3, length:4, sunk:false, name:"Crucero 4"},
+      {id:4, length:2, sunk:false, name:"Lancha 2"},
+      {id:5, length:2, sunk:false, name:"Lancha 2"}
+    ];
+    
+    let currentLength = null;
+    let orientation = 'h'; // h = horizontal, v = vertical
+    let isPlaying = false;
+
+    // Crear grids
+    function createGrid(containerId, isMyGrid) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = '';
+      
+      // Header números
+      container.appendChild(createLabel(''));
+      for (let c = 1; c <= COLS; c++) {
+        const el = createLabel(c);
+        container.appendChild(el);
+      }
+      
+      for (let r = 0; r < ROWS; r++) {
+        // Letra fila
+        container.appendChild(createLabel(letters[r]));
+        
+        for (let c = 0; c < COLS; c++) {
+          const cell = document.createElement('div');
+          cell.className = `cell water`;
+          cell.dataset.row = r;
+          cell.dataset.col = c;
+          
+          if (isMyGrid) {
+            cell.addEventListener('click', handleMyCellClick);
+          } else {
+            cell.addEventListener('click', handleEnemyCellClick);
+          }
+          
+          container.appendChild(cell);
+        }
+      }
+    }
+
+    function createLabel(text) {
+      const div = document.createElement('div');
+      div.className = 'label flex items-center justify-center text-xs';
+      div.textContent = text;
+      return div;
+    }
+
+    // Renderizar grids
+    function renderMyGrid() {
+      const cells = document.querySelectorAll('#my-grid .cell');
+      cells.forEach(cell => {
+        const r = parseInt(cell.dataset.row);
+        const c = parseInt(cell.dataset.col);
+        const st = statusMap[r][c];
+        
+        cell.className = `cell ${st}`;
+        
+        if (st === 'ship' || st === 'hit' || st === 'sunk') {
+          cell.textContent = '🛳️';
+        } else if (st === 'miss') {
+          cell.textContent = '💧';
+        } else if (st === 'sunk') {
+          cell.textContent = '💥';
+        } else {
+          cell.textContent = '';
+        }
+      });
+    }
+
+    function renderEnemyGrid() {
+      const cells = document.querySelectorAll('#enemy-grid .cell');
+      cells.forEach(cell => {
+        const r = parseInt(cell.dataset.row);
+        const c = parseInt(cell.dataset.col);
+        const val = enemyBoard[r][c];
+        
+        cell.className = `cell water`;
+        cell.textContent = '';
+        
+        if (val === 'miss') {
+          cell.classList.add('miss');
+          cell.textContent = '💧';
+        } else if (val === 'hit') {
+          cell.classList.add('hit');
+          cell.textContent = '🔥';
+        }
+      });
+    }
+
+    // Render flota enemiga
+    function renderEnemyFleet() {
+      const container = document.getElementById('enemy-fleet');
+      container.innerHTML = '';
+      opponentShips.forEach(ship => {
+        const div = document.createElement('div');
+        div.className = `flex flex-col items-center cursor-pointer transition-all ${ship.sunk ? 'sunk opacity-60' : ''}`;
+        div.innerHTML = `
+          <div class="ship-hull">
+            ${Array(ship.length).fill('<div class="ship-square"></div>').join('')}
+          </div>
+          <p class="text-xs mt-1">${ship.name}</p>
+        `;
+        if (!ship.sunk) {
+          div.addEventListener('click', () => {
+            if (confirm(`¿Marcar como hundido el ${ship.name}?`)) {
+              ship.sunk = true;
+              renderEnemyFleet();
+            }
+          });
+        }
+        container.appendChild(div);
+      });
+    }
+
+    // Validar colocación
+    function canPlace(row, col, length, orient) {
+      for (let i = 0; i < length; i++) {
+        let r = orient === 'h' ? row : row + i;
+        let c = orient === 'h' ? col + i : col;
+        if (r >= ROWS || c >= COLS || r < 0 || c < 0) return false;
+        if (statusMap[r][c] === 'ship') return false;
+      }
+      return true;
+    }
+
+    // Colocar barco
+    function placeShip(row, col, length) {
+      if (!canPlace(row, col, length, orientation)) {
+        alert("¡No cabe aquí! Prueba otra celda o rota.");
+        return false;
+      }
+      
+      const shipIndex = myShips.length;
+      const positions = [];
+      
+      for (let i = 0; i < length; i++) {
+        let r = orientation === 'h' ? row : row + i;
+        let c = orientation === 'h' ? col + i : col;
+        statusMap[r][c] = 'ship';
+        shipMap[r][c] = shipIndex;
+        positions.push({row: r, col: c});
+      }
+      
+      myShips.push({
+        length: length,
+        positions: positions,
+        hits: 0,
+        sunk: false
+      });
+      
+      renderMyGrid();
+      return true;
+    }
+
+    // Click en mi tablero (colocación o juego)
+    function handleMyCellClick(e) {
+      const r = parseInt(e.target.dataset.row);
+      const c = parseInt(e.target.dataset.col);
+      
+      if (!isPlaying) {
+        // Modo colocación
+        if (currentLength) {
+          if (placeShip(r, c, currentLength)) {
+            // Descontar del botón
+            updateShipButtons();
+          }
+        }
+      } else {
+        // Modo juego: rival me dispara
+        if (statusMap[r][c] === 'miss' || statusMap[r][c] === 'hit' || statusMap[r][c] === 'sunk') return;
+        
+        const shipIndex = shipMap[r][c];
+        if (shipIndex >= 0) {
+          // TOCADO
+          statusMap[r][c] = 'hit';
+          const ship = myShips[shipIndex];
+          ship.hits++;
+          
+          if (ship.hits === ship.length && !ship.sunk) {
+            ship.sunk = true;
+            // Marcar todas las celdas del barco como sunk
+            ship.positions.forEach(p => {
+              statusMap[p.row][p.col] = 'sunk';
+            });
+            alert(`¡HUNDIDO! 🔥 El rival hundió uno de tus barcos`);
+          } else {
+            alert("¡Tocado!");
+          }
+        } else {
+          // AGUA
+          statusMap[r][c] = 'miss';
+          alert("💧 Agua");
+        }
+        renderMyGrid();
+      }
+    }
+
+    // Click en tablero enemigo
+    function handleEnemyCellClick(e) {
+      if (!isPlaying) return;
+      const r = parseInt(e.target.dataset.row);
+      const c = parseInt(e.target.dataset.col);
+      if (enemyBoard[r][c] !== 'unknown') return;
+      
+      const coord = letters[r] + (c + 1);
+      const result = prompt(`Disparaste en ${coord}\n¿Qué te respondió el rival?\n\n1 = Agua\n2 = Tocado\n3 = Hundido`, "2");
+      
+      if (result === "1") {
+        enemyBoard[r][c] = 'miss';
+      } else if (result === "2" || result === "3") {
+        enemyBoard[r][c] = 'hit';
+        if (result === "3") {
+          // Marcar hundido en flota enemiga
+          const alive = opponentShips.filter(s => !s.sunk);
+          if (alive.length > 0) {
+            if (confirm("¡Hundido! ¿Quieres tachar uno de la flota enemiga ahora?")) {
+              // El primer vivo se marca (puedes tocar manualmente después)
+              alive[0].sunk = true;
+              renderEnemyFleet();
+            }
+          }
+        }
+      }
+      renderEnemyGrid();
+    }
+
+    function updateShipButtons() {
+      const container = document.getElementById('ship-buttons');
+      container.innerHTML = `
+        <button onclick="selectShip(6)" class="px-5 py-3 bg-amber-700 hover:bg-amber-600 rounded-2xl font-bold ${myShips.filter(s=>s.length===6).length >= 1 ? 'opacity-30 pointer-events-none' : ''}">
+          Barco 6 casillas
+        </button>
+        <button onclick="selectShip(4)" class="px-5 py-3 bg-amber-700 hover:bg-amber-600 rounded-2xl font-bold ${myShips.filter(s=>s.length===4).length >= 2 ? 'opacity-30 pointer-events-none' : ''}">
+          Barco 4 casillas
+        </button>
+        <button onclick="selectShip(2)" class="px-5 py-3 bg-amber-700 hover:bg-amber-600 rounded-2xl font-bold ${myShips.filter(s=>s.length===2).length >= 2 ? 'opacity-30 pointer-events-none' : ''}">
+          Barco 2 casillas
+        </button>
+      `;
+      // Habilitar botón listo
+      const totalPlaced = myShips.length;
+      document.getElementById('ready-btn').disabled = totalPlaced < 5;
+    }
+
+    window.selectShip = function(len) {
+      currentLength = len;
+      document.getElementById('phase').innerHTML = `Colocando barco de <span class="text-amber-400">${len}</span> casillas • Toca donde empezar`;
+    };
+
+    window.toggleOrientation = function() {
+      orientation = orientation === 'h' ? 'v' : 'h';
+      document.getElementById('orientation-text').textContent = orientation === 'h' ? 'Horizontal →' : 'Vertical ↓';
+    };
+
+    window.resetPlacement = function() {
+      if (confirm("¿Borrar todos los barcos y empezar de nuevo?")) {
+        myShips = [];
+        shipMap = Array.from({length: ROWS}, () => Array(COLS).fill(-1));
+        statusMap = Array.from({length: ROWS}, () => Array(COLS).fill('water'));
+        renderMyGrid();
+        updateShipButtons();
+      }
+    };
+
+    window.startGame = function() {
+      isPlaying = true;
+      document.getElementById('placement-panel').classList.add('hidden');
+      document.getElementById('game-panel').classList.remove('hidden');
+      document.getElementById('phase').innerHTML = `¡Partida en marcha! 🌊 Habla con tu rival`;
+      renderMyGrid();
+    };
+
+    window.endGame = function() {
+      location.reload();
+    };
+
+    // Inicializar todo
+    function init() {
+      createGrid('my-grid', true);
+      createGrid('enemy-grid', false);
+      renderMyGrid();
+      renderEnemyGrid();
+      renderEnemyFleet();
+      updateShipButtons();
+      
+      // Mensaje inicial
+      document.getElementById('my-status').innerHTML = 'Coloca tus barcos: 1×6, 2×4 y 2×2';
+      document.getElementById('enemy-status').innerHTML = 'Tus disparos aparecerán aquí';
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>
