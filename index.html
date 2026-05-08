@@ -6,53 +6,18 @@
   <title>🌊 Batalla Naval Vibes ⚔️</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    .grid-container { 
-      display: grid; 
-      grid-template-columns: repeat(11, minmax(0, 1fr)); 
-      gap: 2px; 
-      background: #0f172a; 
-      padding: 2px; 
-      border-radius: 12px; 
-    }
-    .cell { 
-      aspect-ratio: 1/1; 
-      display: flex; 
-      align-items: center; 
-      justify-content: center; 
-      font-size: 1.4rem; 
-      cursor: pointer; 
-      transition: all 0.2s;
-      user-select: none;
-    }
+    .grid-container { display: grid; grid-template-columns: repeat(11, minmax(0, 1fr)); gap: 2px; background: #0f172a; padding: 2px; border-radius: 12px; }
+    .cell { aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; cursor: pointer; transition: all 0.2s; user-select: none; }
     .cell.water { background: #0ea5e9; }
     .cell.ship { background: #854d0e; }
     .cell.miss { background: #0ea5e9; }
     .cell.hit { background: #ef4444; }
     .cell.sunk { background: #7f1d1d; }
     .label { background: #1e2937; color: white; font-weight: bold; }
-    
     .ship-hull { display: inline-flex; gap: 2px; }
-    .ship-square { 
-      width: 22px; height: 22px; 
-      background: #854d0e; 
-      border: 1px solid #451a03; 
-      border-radius: 2px;
-    }
-    .sunk .ship-square { 
-      background: #7f1d1d; 
-      position: relative; 
-    }
-    .sunk .ship-square::after { 
-      content: "✕"; 
-      position: absolute; 
-      inset: 0; 
-      display: flex; 
-      align-items: center; 
-      justify-content: center; 
-      color: white; 
-      font-size: 14px; 
-      font-weight: bold;
-    }
+    .ship-square { width: 22px; height: 22px; background: #854d0e; border: 1px solid #451a03; border-radius: 2px; }
+    .sunk .ship-square { background: #7f1d1d; position: relative; }
+    .sunk .ship-square::after { content: "✕"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; font-weight: bold; }
   </style>
 </head>
 <body class="bg-slate-950 text-white min-h-screen pb-12">
@@ -62,7 +27,6 @@
     </h1>
 
     <div class="flex flex-col lg:flex-row gap-8">
-      <!-- MI TABLERO -->
       <div class="flex-1">
         <div class="bg-slate-900 rounded-3xl p-6 shadow-2xl">
           <h2 class="text-2xl font-bold mb-4 flex items-center gap-2"><span class="text-cyan-400">🛡️</span> Mi Tablero</h2>
@@ -70,7 +34,6 @@
         </div>
       </div>
 
-      <!-- TABLERO ENEMIGO -->
       <div class="flex-1">
         <div class="bg-slate-900 rounded-3xl p-6 shadow-2xl">
           <h2 class="text-2xl font-bold mb-4 flex items-center gap-2"><span class="text-red-400">🎯</span> Tablero Enemigo</h2>
@@ -80,18 +43,20 @@
       </div>
     </div>
 
-    <!-- FASE -->
     <div class="mt-8 bg-slate-900 rounded-3xl p-6 text-center">
       <div id="phase" class="text-xl font-bold mb-4">Fase: Colocando barcos 🌊</div>
       
       <div id="placement-panel">
         <div class="flex flex-wrap justify-center gap-4 mb-6" id="ship-buttons"></div>
-        <div class="flex justify-center gap-4">
+        <div class="flex justify-center gap-4 flex-wrap">
           <button onclick="toggleOrientation()" class="px-6 py-3 bg-slate-800 hover:bg-slate-700 rounded-2xl font-bold flex items-center gap-2">
             <span id="orientation-text">Horizontal →</span>
           </button>
           <button onclick="resetPlacement()" class="px-6 py-3 bg-red-500/80 hover:bg-red-600 rounded-2xl font-bold">Reiniciar colocación</button>
-          <button onclick="startGame()" id="ready-btn" class="px-8 py-3 bg-emerald-500 hover:bg-emerald-600 rounded-2xl font-bold text-xl disabled:opacity-50" disabled>¡Listo! Empezar partida</button>
+          <button onclick="startGame()" id="ready-btn" 
+                  class="px-8 py-3 bg-emerald-500 hover:bg-emerald-600 rounded-2xl font-bold text-xl disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+            ¡Listo! Empezar partida
+          </button>
         </div>
       </div>
 
@@ -100,7 +65,6 @@
       </div>
     </div>
 
-    <!-- FLOTA ENEMIGA -->
     <div class="mt-8 bg-slate-900 rounded-3xl p-6">
       <h3 class="text-xl font-bold mb-4 flex items-center gap-2"><span class="text-purple-400">🏴‍☠️</span> Flota enemiga (toca para tachar/des-tachar)</h3>
       <div id="enemy-fleet" class="flex flex-wrap gap-6 justify-center"></div>
@@ -142,12 +106,8 @@
           cell.className = `cell water`;
           cell.dataset.row = r;
           cell.dataset.col = c;
-          
-          if (isMyGrid) {
-            cell.addEventListener('click', handleMyCellClick);
-          } else {
-            cell.addEventListener('click', handleEnemyCellClick);
-          }
+          if (isMyGrid) cell.addEventListener('click', handleMyCellClick);
+          else cell.addEventListener('click', handleEnemyCellClick);
           container.appendChild(cell);
         }
       }
@@ -165,7 +125,7 @@
         const r = +cell.dataset.row, c = +cell.dataset.col;
         const st = statusMap[r][c];
         cell.className = `cell ${st}`;
-        cell.textContent = st === 'miss' ? '💧' : (st === 'hit' ? '🔥' : (st === 'sunk' ? '💥' : (st === 'ship' ? '🛳️' : '')));
+        cell.textContent = st === 'miss' ? '💧' : st === 'hit' ? '🔥' : st === 'sunk' ? '💥' : st === 'ship' ? '🛳️' : '';
       });
     }
 
@@ -175,7 +135,6 @@
         const st = enemyBoard[r][c];
         cell.className = `cell water`;
         cell.textContent = '';
-        
         if (st === 'miss') { cell.classList.add('miss'); cell.textContent = '💧'; }
         else if (st === 'hit') { cell.classList.add('hit'); cell.textContent = '🔥'; }
         else if (st === 'sunk') { cell.classList.add('sunk'); cell.textContent = '💥'; }
@@ -188,16 +147,8 @@
       opponentShips.forEach(ship => {
         const div = document.createElement('div');
         div.className = `flex flex-col items-center cursor-pointer transition-all ${ship.sunk ? 'sunk opacity-60' : ''}`;
-        div.innerHTML = `
-          <div class="ship-hull">
-            ${Array(ship.length).fill('<div class="ship-square"></div>').join('')}
-          </div>
-          <p class="text-xs mt-1">${ship.name}</p>
-        `;
-        div.addEventListener('click', () => {
-          ship.sunk = !ship.sunk;
-          renderEnemyFleet();
-        });
+        div.innerHTML = `<div class="ship-hull">${Array(ship.length).fill('<div class="ship-square"></div>').join('')}</div><p class="text-xs mt-1">${ship.name}</p>`;
+        div.addEventListener('click', () => { ship.sunk = !ship.sunk; renderEnemyFleet(); });
         container.appendChild(div);
       });
     }
@@ -213,12 +164,11 @@
 
     function placeShip(row, col, length) {
       if (!canPlace(row, col, length, orientation)) {
-        alert("¡No cabe ahí! Prueba otra posición.");
+        alert("¡No cabe ahí! Prueba otra celda o cambia la orientación.");
         return false;
       }
       const shipIndex = myShips.length;
       const positions = [];
-      
       for (let i = 0; i < length; i++) {
         let r = orientation === 'h' ? row : row + i;
         let c = orientation === 'h' ? col + i : col;
@@ -226,9 +176,9 @@
         shipMap[r][c] = shipIndex;
         positions.push({row:r, col:c});
       }
-      
       myShips.push({length, positions, hits:0, sunk:false});
       renderMyGrid();
+      updateShipButtons();   // ← importante
       return true;
     }
 
@@ -236,7 +186,6 @@
       if (!isPlaying) {
         if (currentLength) placeShip(+e.target.dataset.row, +e.target.dataset.col, currentLength);
       } else {
-        // rival te dispara
         const r = +e.target.dataset.row, c = +e.target.dataset.col;
         if (['miss','hit','sunk'].includes(statusMap[r][c])) return;
         
@@ -258,31 +207,29 @@
       }
     }
 
-    // === NUEVO: CICLO EN TABLERO ENEMIGO ===
     function handleEnemyCellClick(e) {
       if (!isPlaying) return;
-      const r = +e.target.dataset.row;
-      const c = +e.target.dataset.col;
-      
+      const r = +e.target.dataset.row, c = +e.target.dataset.col;
       const states = ['unknown', 'miss', 'hit', 'sunk'];
-      let current = enemyBoard[r][c];
-      let nextIndex = (states.indexOf(current) + 1) % states.length;
-      enemyBoard[r][c] = states[nextIndex];
-      
+      let idx = states.indexOf(enemyBoard[r][c]);
+      enemyBoard[r][c] = states[(idx + 1) % 4];
       renderEnemyGrid();
     }
 
     function updateShipButtons() {
-      const placed6 = myShips.filter(s => s.length === 6).length;
-      const placed4 = myShips.filter(s => s.length === 4).length;
-      const placed2 = myShips.filter(s => s.length === 2).length;
-      
+      const count6 = myShips.filter(s => s.length === 6).length;
+      const count4 = myShips.filter(s => s.length === 4).length;
+      const count2 = myShips.filter(s => s.length === 2).length;
+
       document.getElementById('ship-buttons').innerHTML = `
-        <button onclick="selectShip(6)" class="px-5 py-3 bg-amber-700 hover:bg-amber-600 rounded-2xl font-bold ${placed6 >= 1 ? 'opacity-30 pointer-events-none' : ''}">Barco 6</button>
-        <button onclick="selectShip(4)" class="px-5 py-3 bg-amber-700 hover:bg-amber-600 rounded-2xl font-bold ${placed4 >= 2 ? 'opacity-30 pointer-events-none' : ''}">Barco 4</button>
-        <button onclick="selectShip(2)" class="px-5 py-3 bg-amber-700 hover:bg-amber-600 rounded-2xl font-bold ${placed2 >= 2 ? 'opacity-30 pointer-events-none' : ''}">Barco 2</button>
+        <button onclick="selectShip(6)" class="px-5 py-3 bg-amber-700 hover:bg-amber-600 rounded-2xl font-bold ${count6 >= 1 ? 'opacity-30 pointer-events-none' : ''}">🚢 6</button>
+        <button onclick="selectShip(4)" class="px-5 py-3 bg-amber-700 hover:bg-amber-600 rounded-2xl font-bold ${count4 >= 2 ? 'opacity-30 pointer-events-none' : ''}">🚢 4</button>
+        <button onclick="selectShip(2)" class="px-5 py-3 bg-amber-700 hover:bg-amber-600 rounded-2xl font-bold ${count2 >= 2 ? 'opacity-30 pointer-events-none' : ''}">🚢 2</button>
       `;
-      document.getElementById('ready-btn').disabled = myShips.length < 5;
+
+      // ✅ Nueva condición más segura
+      const allPlaced = (count6 >= 1 && count4 >= 2 && count2 >= 2);
+      document.getElementById('ready-btn').disabled = !allPlaced;
     }
 
     window.selectShip = (len) => { currentLength = len; };
@@ -291,10 +238,12 @@
       document.getElementById('orientation-text').textContent = orientation === 'h' ? 'Horizontal →' : 'Vertical ↓';
     };
     window.resetPlacement = () => {
-      if (confirm("¿Borrar todo y volver a colocar?")) {
-        myShips = []; shipMap = Array.from({length: ROWS}, () => Array(COLS).fill(-1));
+      if (confirm("¿Borrar todos los barcos?")) {
+        myShips = [];
+        shipMap = Array.from({length: ROWS}, () => Array(COLS).fill(-1));
         statusMap = Array.from({length: ROWS}, () => Array(COLS).fill('water'));
-        renderMyGrid(); updateShipButtons();
+        renderMyGrid();
+        updateShipButtons();
       }
     };
     window.startGame = () => {
