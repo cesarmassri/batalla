@@ -31,11 +31,6 @@
     }
     .cell.water { background: #0ea5e9; }
     .cell.ship { background: #854d0e; }
-    .cell.miss { 
-      background: #0369a1;           /* Azul más oscuro */
-      color: #ffffff;
-      text-shadow: 0 0 6px #000000, 0 0 3px #000000;
-    }
     .cell.hit { background: #ef4444; }
     .cell.sunk { background: #7f1d1d; }
 
@@ -169,7 +164,7 @@
         const r = +cell.dataset.row, c = +cell.dataset.col;
         const st = statusMap[r][c];
         cell.className = `cell ${st}`;
-        cell.textContent = st === 'ship' ? '🛳️' : st === 'hit' ? '🔥' : st === 'miss' ? '💧' : '';
+        cell.textContent = st === 'ship' ? '🛳️' : st === 'hit' ? '🔥' : '';
       });
     }
 
@@ -210,13 +205,17 @@
       const c = +e.target.dataset.col;
       
       if (!isPlaying) {
+        // Colocación libre
         statusMap[r][c] = statusMap[r][c] === 'water' ? 'ship' : 'water';
       } else {
+        // Durante la partida → SOLO toques (sin agua)
         const current = statusMap[r][c];
-        if (current === 'ship') statusMap[r][c] = 'hit';
-        else if (current === 'hit') statusMap[r][c] = 'ship';
-        else if (current === 'water' || current === 'miss') statusMap[r][c] = 'miss';
-        else if (current === 'miss') statusMap[r][c] = 'water';
+        if (current === 'ship') {
+          statusMap[r][c] = 'hit';      // Barco → Fuego
+        } else if (current === 'hit') {
+          statusMap[r][c] = 'ship';     // Fuego → Barco (corregir)
+        }
+        // Las casillas de agua se ignoran (no se marcan)
       }
       renderMyGrid();
     }
@@ -235,7 +234,7 @@
       document.getElementById('ready-btn').classList.add('hidden');
       document.getElementById('restart-btn').classList.remove('hidden');
       document.getElementById('phase').textContent = "¡Partida en marcha! Habla con tu rival 🌊";
-      document.getElementById('my-help').textContent = "Toca para corregir toques o misses";
+      document.getElementById('my-help').textContent = "Toca el barco cuando te digan 'tocado'";
       renderMyGrid();
     };
 
@@ -252,4 +251,4 @@
     window.onload = init;
   </script>
 </body>
-                                                                                                                           </html>
+</html>
