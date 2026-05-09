@@ -205,17 +205,17 @@
       const c = +e.target.dataset.col;
       
       if (!isPlaying) {
-        // Colocación libre
+        // Colocación
         statusMap[r][c] = statusMap[r][c] === 'water' ? 'ship' : 'water';
       } else {
-        // Durante la partida → SOLO toques (sin agua)
+        // Durante la partida → SOLO fuego (sin gotas)
         const current = statusMap[r][c];
         if (current === 'ship') {
-          statusMap[r][c] = 'hit';      // Barco → Fuego
+          statusMap[r][c] = 'hit';
         } else if (current === 'hit') {
-          statusMap[r][c] = 'ship';     // Fuego → Barco (corregir)
+          statusMap[r][c] = 'ship';   // corregir
         }
-        // Las casillas de agua se ignoran (no se marcan)
+        // Agua no se marca nunca
       }
       renderMyGrid();
     }
@@ -251,4 +251,4 @@
     window.onload = init;
   </script>
 </body>
-</html>
+  </html>
