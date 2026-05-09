@@ -31,6 +31,14 @@
     }
     .cell.water { background: #0ea5e9; }
     .cell.ship { background: #854d0e; }
+    
+    /* Gota de agua con buen contraste */
+    .cell.miss { 
+      background: #0369a1; 
+      color: #ffffff;
+      text-shadow: 0 0 8px #000000, 0 0 4px #000000;
+    }
+    
     .cell.hit { background: #ef4444; }
     .cell.sunk { background: #7f1d1d; }
 
@@ -174,9 +182,18 @@
         const st = enemyBoard[r][c];
         cell.className = `cell water`;
         cell.textContent = '';
-        if (st === 'miss') { cell.classList.add('miss'); cell.textContent = '💧'; }
-        else if (st === 'hit') { cell.classList.add('hit'); cell.textContent = '🔥'; }
-        else if (st === 'sunk') { cell.classList.add('sunk'); cell.textContent = '💥'; }
+        if (st === 'miss') { 
+          cell.classList.add('miss'); 
+          cell.textContent = '💧'; 
+        }
+        else if (st === 'hit') { 
+          cell.classList.add('hit'); 
+          cell.textContent = '🔥'; 
+        }
+        else if (st === 'sunk') { 
+          cell.classList.add('sunk'); 
+          cell.textContent = '💥'; 
+        }
       });
     }
 
@@ -205,17 +222,11 @@
       const c = +e.target.dataset.col;
       
       if (!isPlaying) {
-        // Colocación
         statusMap[r][c] = statusMap[r][c] === 'water' ? 'ship' : 'water';
       } else {
-        // Durante la partida → SOLO fuego (sin gotas)
         const current = statusMap[r][c];
-        if (current === 'ship') {
-          statusMap[r][c] = 'hit';
-        } else if (current === 'hit') {
-          statusMap[r][c] = 'ship';   // corregir
-        }
-        // Agua no se marca nunca
+        if (current === 'ship') statusMap[r][c] = 'hit';
+        else if (current === 'hit') statusMap[r][c] = 'ship';
       }
       renderMyGrid();
     }
@@ -251,4 +262,4 @@
     window.onload = init;
   </script>
 </body>
-  </html>
+</html>
