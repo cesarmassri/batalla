@@ -20,7 +20,7 @@
       display: flex; 
       align-items: center; 
       justify-content: center; 
-      font-size: 1.15rem; 
+      font-size: 1.25rem; 
       line-height: 1;
       cursor: pointer; 
       transition: all 0.2s; 
@@ -31,12 +31,17 @@
     }
     .cell.water { background: #0ea5e9; }
     .cell.ship { background: #854d0e; }
+    
+    /* === CONTRASTE MÁXIMO PARA LA GOTA === */
     .cell.miss { 
-      background: #1e40af; 
+      background: #1e40af;           /* Azul muy oscuro */
       color: #ffffff;
-      text-shadow: 0 0 10px #000000, 0 0 5px #000000;
+      text-shadow: 0 0 10px #000000, 
+                   0 0 5px #000000,
+                   2px 2px 3px #000000;
       font-size: 1.4rem;
     }
+    
     .cell.hit { background: #ef4444; }
     .cell.sunk { background: #7f1d1d; }
 
@@ -49,6 +54,35 @@
       align-items: center;
       justify-content: center;
     }
+    
+    .ship-hull { display: inline-flex; gap: 2px; }
+    .ship-square { 
+      width: 20px; height: 20px; 
+      background: #854d0e; 
+      border: 1px solid #451a03; 
+      border-radius: 2px;
+    }
+    .sunk .ship-square { 
+      background: #7f1d1d; 
+      position: relative; 
+    }
+    .sunk .ship-square::after { 
+      content: "✕"; 
+      position: absolute; 
+      inset: 0; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      color: white; 
+      font-size: 12px; 
+      font-weight: bold;
+    }
+
+    @media (max-width: 640px) {
+      .cell { font-size: 1.1rem; }
+      .cell.miss { font-size: 1.35rem; }
+      .grid-container { gap: 2px; padding: 2px; }
+    }
   </style>
 </head>
 <body class="bg-slate-950 text-white min-h-screen pb-8">
@@ -57,17 +91,9 @@
       🌊 Batalla Naval <span class="text-amber-400">VIBES</span> ⚔️
     </h1>
 
-    <!-- Toggle de tamaño -->
-    <div class="flex justify-center mb-4">
-      <button onclick="toggleGridSize()" id="size-btn"
-              class="px-6 py-2 bg-slate-700 hover:bg-slate-600 font-bold rounded-2xl flex items-center gap-2">
-        <span id="size-text">10×10</span>
-        <span class="text-xs opacity-70">(clic para cambiar)</span>
-      </button>
-    </div>
-
     <div class="flex justify-center gap-4 mb-6 flex-wrap" id="top-controls">
-      <button onclick="startGame()" id="ready-btn" class="px-8 py-3 bg-emerald-500 hover:bg-emerald-600 font-bold rounded-2xl text-lg">
+      <button onclick="startGame()" id="ready-btn"
+              class="px-8 py-3 bg-emerald-500 hover:bg-emerald-600 font-bold rounded-2xl text-lg">
         ¡Empezar Partida!
       </button>
       <button onclick="endGame()" id="restart-btn" class="hidden px-6 py-3 bg-slate-700 hover:bg-slate-600 font-bold rounded-2xl">
@@ -102,13 +128,12 @@
   </div>
 
   <script>
-    let GRID_SIZE = 10;
-    let letters = 'ABCDEFGHIJ'.split('');
+    const ROWS = 10, COLS = 10;
+    const letters = 'ABCDEFGHIJ'.split('');
     
-    let statusMap = [];
-    let enemyBoard = [];
-    let isPlaying = false;
-
+    let statusMap = Array.from({length: ROWS}, () => Array(COLS).fill('water'));
+    let enemyBoard = Array.from({length: ROWS}, () => Array(COLS).fill('unknown'));
+    
     let opponentShips = [
       {id:1, length:6, sunk:false, name:"Portaaviones 6"},
       {id:2, length:4, sunk:false, name:"Crucero 4"},
@@ -116,25 +141,18 @@
       {id:4, length:2, sunk:false, name:"Lancha 2"},
       {id:5, length:2, sunk:false, name:"Lancha 2"}
     ];
-
-    function initGrids() {
-      letters = 'ABCDEFGHIJ'.split('').slice(0, GRID_SIZE);
-      statusMap = Array.from({length: GRID_SIZE}, () => Array(GRID_SIZE).fill('water'));
-      enemyBoard = Array.from({length: GRID_SIZE}, () => Array(GRID_SIZE).fill('unknown'));
-    }
+    
+    let isPlaying = false;
 
     function createGrid(containerId, isMyGrid) {
       const container = document.getElementById(containerId);
       container.innerHTML = '';
-      container.style.gridTemplateColumns = `repeat(${GRID_SIZE + 1}, 1fr)`;
-      
-      // Header
       container.appendChild(createLabel(''));
-      for (let c = 1; c <= GRID_SIZE; c++) container.appendChild(createLabel(c));
+      for (let c = 1; c <= COLS; c++) container.appendChild(createLabel(c));
       
-      for (let r = 0; r < GRID_SIZE; r++) {
+      for (let r = 0; r < ROWS; r++) {
         container.appendChild(createLabel(letters[r]));
-        for (let c = 0; c < GRID_SIZE; c++) {
+        for (let c = 0; c < COLS; c++) {
           const cell = document.createElement('div');
           cell.className = `cell water`;
           cell.dataset.row = r;
@@ -168,9 +186,18 @@
         const st = enemyBoard[r][c];
         cell.className = `cell water`;
         cell.textContent = '';
-        if (st === 'miss') { cell.classList.add('miss'); cell.textContent = '💧'; }
-        else if (st === 'hit') { cell.classList.add('hit'); cell.textContent = '🔥'; }
-        else if (st === 'sunk') { cell.classList.add('sunk'); cell.textContent = '💥'; }
+        if (st === 'miss') { 
+          cell.classList.add('miss'); 
+          cell.textContent = '💧'; 
+        }
+        else if (st === 'hit') { 
+          cell.classList.add('hit'); 
+          cell.textContent = '🔥'; 
+        }
+        else if (st === 'sunk') { 
+          cell.classList.add('sunk'); 
+          cell.textContent = '💥'; 
+        }
       });
     }
 
@@ -180,19 +207,30 @@
       opponentShips.forEach(ship => {
         const div = document.createElement('div');
         div.className = `flex flex-col items-center cursor-pointer transition-all ${ship.sunk ? 'sunk opacity-60' : ''}`;
-        div.innerHTML = `<div class="ship-hull">${Array(ship.length).fill('<div class="ship-square"></div>').join('')}</div><p class="text-xs mt-1">${ship.name}</p>`;
-        div.addEventListener('click', () => { ship.sunk = !ship.sunk; renderEnemyFleet(); });
+        div.innerHTML = `
+          <div class="ship-hull">
+            ${Array(ship.length).fill('<div class="ship-square"></div>').join('')}
+          </div>
+          <p class="text-xs mt-1">${ship.name}</p>
+        `;
+        div.addEventListener('click', () => {
+          ship.sunk = !ship.sunk;
+          renderEnemyFleet();
+        });
         container.appendChild(div);
       });
     }
 
     function handleMyCellClick(e) {
-      const r = +e.target.dataset.row, c = +e.target.dataset.col;
+      const r = +e.target.dataset.row;
+      const c = +e.target.dataset.col;
+      
       if (!isPlaying) {
         statusMap[r][c] = statusMap[r][c] === 'water' ? 'ship' : 'water';
       } else {
-        if (statusMap[r][c] === 'ship') statusMap[r][c] = 'hit';
-        else if (statusMap[r][c] === 'hit') statusMap[r][c] = 'ship';
+        const current = statusMap[r][c];
+        if (current === 'ship') statusMap[r][c] = 'hit';
+        else if (current === 'hit') statusMap[r][c] = 'ship';
       }
       renderMyGrid();
     }
@@ -206,16 +244,6 @@
       renderEnemyGrid();
     }
 
-    window.toggleGridSize = () => {
-      GRID_SIZE = GRID_SIZE === 10 ? 5 : 10;
-      document.getElementById('size-text').textContent = GRID_SIZE + "×" + GRID_SIZE;
-      initGrids();
-      createGrid('my-grid', true);
-      createGrid('enemy-grid', false);
-      renderMyGrid();
-      renderEnemyGrid();
-    };
-
     window.startGame = () => {
       isPlaying = true;
       document.getElementById('ready-btn').classList.add('hidden');
@@ -228,7 +256,6 @@
     window.endGame = () => location.reload();
 
     function init() {
-      initGrids();
       createGrid('my-grid', true);
       createGrid('enemy-grid', false);
       renderMyGrid();
