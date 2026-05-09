@@ -20,17 +20,22 @@
       display: flex; 
       align-items: center; 
       justify-content: center; 
-      font-size: 1.1rem;           /* más pequeño y controlado */
+      font-size: 1.15rem; 
       line-height: 1;
       cursor: pointer; 
       transition: all 0.2s; 
       user-select: none;
-      overflow: hidden;             /* evita desbordes */
+      overflow: hidden;
       border-radius: 4px;
+      font-weight: bold;
     }
     .cell.water { background: #0ea5e9; }
     .cell.ship { background: #854d0e; }
-    .cell.miss { background: #0ea5e9; }
+    .cell.miss { 
+      background: #0369a1;           /* Azul más oscuro */
+      color: #ffffff;
+      text-shadow: 0 0 6px #000000, 0 0 3px #000000;
+    }
     .cell.hit { background: #ef4444; }
     .cell.sunk { background: #7f1d1d; }
 
@@ -67,9 +72,8 @@
       font-weight: bold;
     }
 
-    /* Mejora para móviles */
     @media (max-width: 640px) {
-      .cell { font-size: 1rem; }
+      .cell { font-size: 1.05rem; }
       .grid-container { gap: 2px; padding: 2px; }
     }
   </style>
@@ -91,7 +95,6 @@
     </div>
 
     <div class="flex flex-col lg:flex-row gap-8">
-      <!-- MI TABLERO + FLOTA -->
       <div class="flex-1">
         <div class="bg-slate-900 rounded-3xl p-5 shadow-2xl">
           <h2 class="text-2xl font-bold mb-3 flex items-center gap-2"><span class="text-cyan-400">🛡️</span> Mi Tablero</h2>
@@ -105,7 +108,6 @@
         </div>
       </div>
 
-      <!-- TABLERO ENEMIGO -->
       <div class="flex-1">
         <div class="bg-slate-900 rounded-3xl p-5 shadow-2xl">
           <h2 class="text-2xl font-bold mb-3 flex items-center gap-2"><span class="text-red-400">🎯</span> Tablero Enemigo</h2>
@@ -167,7 +169,7 @@
         const r = +cell.dataset.row, c = +cell.dataset.col;
         const st = statusMap[r][c];
         cell.className = `cell ${st}`;
-        cell.textContent = (st === 'ship') ? '🛳️' : '';
+        cell.textContent = st === 'ship' ? '🛳️' : st === 'hit' ? '🔥' : st === 'miss' ? '💧' : '';
       });
     }
 
@@ -207,11 +209,14 @@
       const r = +e.target.dataset.row;
       const c = +e.target.dataset.col;
       
-      if (isPlaying) {
-        if (['miss','hit','sunk'].includes(statusMap[r][c])) return;
-        statusMap[r][c] = statusMap[r][c] === 'ship' ? 'hit' : 'miss';
-      } else {
+      if (!isPlaying) {
         statusMap[r][c] = statusMap[r][c] === 'water' ? 'ship' : 'water';
+      } else {
+        const current = statusMap[r][c];
+        if (current === 'ship') statusMap[r][c] = 'hit';
+        else if (current === 'hit') statusMap[r][c] = 'ship';
+        else if (current === 'water' || current === 'miss') statusMap[r][c] = 'miss';
+        else if (current === 'miss') statusMap[r][c] = 'water';
       }
       renderMyGrid();
     }
@@ -230,7 +235,7 @@
       document.getElementById('ready-btn').classList.add('hidden');
       document.getElementById('restart-btn').classList.remove('hidden');
       document.getElementById('phase').textContent = "¡Partida en marcha! Habla con tu rival 🌊";
-      document.getElementById('my-help').textContent = "Toca cuando te disparen";
+      document.getElementById('my-help').textContent = "Toca para corregir toques o misses";
       renderMyGrid();
     };
 
@@ -247,4 +252,4 @@
     window.onload = init;
   </script>
 </body>
-</html>
+                                                                                                                           </html>
